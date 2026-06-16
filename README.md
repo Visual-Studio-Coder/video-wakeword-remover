@@ -57,7 +57,10 @@ That will produce a cleaned duplicate in the same media format family as the sou
 
 Listen to the before/after pair:
 
-- [New Recording 10.wav](wakeword-remover/New%20Recording%2010.wav)
-- [New Recording 10_cleaned.wav](wakeword-remover/New%20Recording%2010_cleaned.wav)
+#### Original
+<audio controls src="wakeword-remover/New%20Recording%2010.wav"></audio>
+
+#### Cleaned
+<audio controls src="wakeword-remover/New%20Recording%2010_cleaned.wav"></audio>
 
 The second file shows the processed output after wakeword suppression is applied.
