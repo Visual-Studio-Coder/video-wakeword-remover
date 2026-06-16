@@ -59,12 +59,12 @@ Listen to the before/after pair:
 
 #### Original
 <audio controls>
-  <source src="wakeword-remover/New%20Recording%2010.wav" type="audio/wav">
+  <source src="wakeword-remover/New%20Recording%2010.mp3" type="audio/mp3">
 </audio>
 
 #### Cleaned
 <audio controls>
-  <source src="wakeword-remover/New%20Recording%2010_cleaned.wav" type="audio/wav">
+  <source src="wakeword-remover/New%20Recording%2010_cleaned.mp3" type="audio/mp3">
 </audio>
 
 The second file shows the processed output after wakeword suppression is applied.
