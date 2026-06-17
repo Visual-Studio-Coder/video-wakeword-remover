@@ -1,5 +1,9 @@
 # Wake-word Deactivator
 
+https://x.com/bryanwangxin/status/2064309590414836085
+
+> In Apple's keynote video, whenever Siri is mentioned, the audio is cut at the 3k, 4k, 5k, and 6kHz frequency bands to prevent nearby Apple devices from activating Siri while viewers watch the video.
+
 A small CLI tool that processes audio/video files and suppresses common wake words like `Siri`, `Alexa`, and `OK Google` by altering the wakeword section and stitching the media back together.
 
 ## Install
