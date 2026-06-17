@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wakeword-remover"
+version = "0.1.0"
+description = "Deactivate wake words in audio and video files"
+
+requires-python = ">=3.14"
+dependencies = [
+    "ffmpeg-python>=0.2.0",
+    "mlx-whisper",
+]
+
+[project.scripts]
+wakeword-remover = "wakeword_remover.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["wakeword_remover*"]

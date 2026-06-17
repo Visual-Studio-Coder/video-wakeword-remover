@@ -1,70 +1,55 @@
 # Wake-word Deactivator
 
-https://x.com/bryanwangxin/status/2064309590414836085
+A small CLI tool that processes audio/video files and suppresses common wake words like `Siri`, `Alexa`, and `OK Google` by altering the wakeword section and stitching the media back together.
 
-> In Apple's keynote video, whenever Siri is mentioned, the audio is cut at the 3k, 4k, 5k, and 6kHz frequency bands to prevent nearby Apple devices from activating Siri while viewers watch the video.
+## Install
 
-When Apple says “Siri” in a keynote, they deliberately suppress specific frequencies in the audio so it doesn’t trigger nearby devices. This project does the same thing for your content.
+### Homebrew
 
-It’s a small CLI tool that processes audio and video files so wake words like “Hey Siri”, “Alexa”, “OK Google”, etc. are less likely to trigger nearby smart assistants.
+This repo includes a Homebrew formula in `Formula/`.
 
-## Requirements
+```bash
+brew tap Visual-Studio-Coder/video-wakeword-remover https://github.com/Visual-Studio-Coder/video-wakeword-remover
+brew install --HEAD wakeword-remover
+```
 
-- Python environment managed by `uv`
-- `ffmpeg` available on your system
-- `mlx_whisper` and `ffmpeg-python` installed through the project dependencies
+### Python
+
+```bash
+python -m pip install .
+```
 
 ## Usage
 
-The tool accepts any audio or video file that `ffmpeg` can decode.
-
 ```bash
-uv run main.py process /path/to/input-media --wakewords "hey siri" siri "ok google" --output /path/to/output
+wakeword-remover /path/to/input-media --wakewords "hey siri" siri "ok google"
 ```
 
-You can also omit `process` and pass the input path directly:
+You can also use the explicit subcommand form:
 
 ```bash
-uv run main.py /path/to/input-media --wakewords "hey siri" siri "ok google" --output /path/to/output
+wakeword-remover process /path/to/input-media --wakewords "hey siri" siri "ok google"
 ```
 
-### Output behavior
+## Output
 
-- If `--output` is omitted, the tool writes a sibling file named like:
-  - `input_cleaned.mp3`
-  - `input_cleaned.m4a`
-  - `input_cleaned.mp4`
-- The output container is inferred from the input media with `ffmpeg`/`ffprobe`.
-- If the input filename extension is misleading, the tool uses the detected media container family so the output is still valid.
-- The wakeword region is split into before / during / after, the `during` portion is processed, then the pieces are stitched back together.
-- The same cleaned file is updated for every wakeword occurrence, so the final result contains all processing passes.
+- The tool writes a cleaned duplicate of the input media.
+- The output is inferred from the input format when possible.
+- The wakeword region is split into `before`, `during`, and `after` segments.
+- The `during` segment is processed, then the file is stitched back together.
+- The same cleaned file is updated for every wakeword occurrence.
 
-### Wakeword matching
+## Python API
 
-- Matching is phrase-based.
-- Punctuation is stripped before comparison.
-- Use quotes around multi-word phrases.
+```python
+from wakeword_remover.cli import process_media
 
-### Example
-
-```bash
-uv run main.py process keynote.mov --wakewords "hey siri" "ok google"
+output_path = process_media("input.mp4", wakewords=["hey siri", "ok google"])
+print(output_path)
 ```
 
-That will produce a cleaned duplicate in the same media format family as the source file.
+## Notes
 
-### Example files
-
-Listen to the before/after pair:
-
-#### Original
-<audio controls>
-  <source src="wakeword-remover/New%20Recording%2010.mp3" type="audio/mp3">
-</audio>
-
-#### Cleaned
-<audio controls>
-  <source src="wakeword-remover/New%20Recording%2010_cleaned.mp3" type="audio/mp3">
-</audio>
-
-The second file shows the processed output after wakeword suppression is applied.
+- Requires `ffmpeg` on your system.
+- Punctuation is stripped during wakeword matching.
+- Multi-word phrases are supported, for example `"ok google"`.

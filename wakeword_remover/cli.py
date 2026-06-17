@@ -1,5 +1,4 @@
 import argparse
-import json
 import re
 import shutil
 import sys
@@ -206,7 +205,7 @@ def _output_encoding_kwargs(output_suffix: str, has_video: bool):
 
 
 def _resolve_output_path(
-    input_path: Path, probe: Any, has_video: bool, output_arg: str | None
+    input_path: Path, probe: Any, has_video: bool, output_arg: str | Path | None
 ):
     inferred_suffix = _infer_output_suffix(input_path, probe, has_video)
 
@@ -277,6 +276,64 @@ def _process_interval(source_path, destination_path, start, end, has_video, has_
     raise RuntimeError("Input media has no audio or video streams.")
 
 
+def process_media(
+    input_path: str | Path,
+    wakewords: list[str] | None = None,
+    output: str | Path | None = None,
+):
+    source_path = Path(input_path)
+    selected_wakewords = DEFAULT_WAKEWORDS if wakewords is None else wakewords
+
+    transcript: Any = mlx_whisper.transcribe(str(source_path), word_timestamps=True)
+    words = [
+        word
+        for segment in transcript.get("segments", [])
+        for word in segment.get("words", [])
+    ]
+
+    probe: Any = ffmpeg.probe(str(source_path))
+    has_video = any(
+        stream.get("codec_type") == "video" for stream in probe.get("streams", [])
+    )
+    has_audio = any(
+        stream.get("codec_type") == "audio" for stream in probe.get("streams", [])
+    )
+
+    if not has_audio and not has_video:
+        raise RuntimeError("Input media has no audio or video streams.")
+
+    output_file = _resolve_output_path(source_path, probe, has_video, output)
+    temp_file = output_file.with_name(f"{output_file.stem}.tmp{output_file.suffix}")
+
+    matches = _find_wakeword_intervals(words, selected_wakewords)
+
+    shutil.copy2(source_path, output_file)
+
+    if not matches:
+        print(f"No wakewords found; copied input to {output_file}")
+        return output_file
+
+    current_path = output_file
+    for match in reversed(matches):
+        labels = ", ".join(match["labels"])
+        print(
+            f"Processing wakeword(s): {labels} at {match['start']}s - {match['end']}s"
+        )
+        _process_interval(
+            current_path,
+            temp_file,
+            match["start"],
+            match["end"],
+            has_video,
+            has_audio,
+        )
+        temp_file.replace(output_file)
+        current_path = output_file
+
+    print(f"Wrote cleaned output to {output_file}")
+    return output_file
+
+
 def _build_parser():
     parser = argparse.ArgumentParser(
         description="Deactivate wake words in media files."
@@ -303,57 +360,7 @@ def _main(argv: list[str] | None = None):
     args = parser.parse_args(argv)
 
     print("Hello from wakeword-remover!")
-
-    input_path = Path(args.input)
-    transcript: Any = mlx_whisper.transcribe(str(input_path), word_timestamps=True)
-    words = [
-        word
-        for segment in transcript.get("segments", [])
-        for word in segment.get("words", [])
-    ]
-    print(json.dumps(words, indent=2))
-
-    probe: Any = ffmpeg.probe(str(input_path))
-    has_video = any(
-        stream.get("codec_type") == "video" for stream in probe.get("streams", [])
-    )
-    has_audio = any(
-        stream.get("codec_type") == "audio" for stream in probe.get("streams", [])
-    )
-
-    if not has_audio and not has_video:
-        raise RuntimeError("Input media has no audio or video streams.")
-
-    output_file = _resolve_output_path(input_path, probe, has_video, args.output)
-    temp_file = output_file.with_name(f"{output_file.stem}.tmp{output_file.suffix}")
-
-    matches = _find_wakeword_intervals(words, args.wakewords)
-    print(json.dumps(matches, indent=2))
-
-    shutil.copy2(input_path, output_file)
-
-    if not matches:
-        print(f"No wakewords found; copied input to {output_file}")
-        return
-
-    current_path = output_file
-    for match in reversed(matches):
-        labels = ", ".join(match["labels"])
-        print(
-            f"Processing wakeword(s): {labels} at {match['start']}s - {match['end']}s"
-        )
-        _process_interval(
-            current_path,
-            temp_file,
-            match["start"],
-            match["end"],
-            has_video,
-            has_audio,
-        )
-        temp_file.replace(output_file)
-        current_path = output_file
-
-    print(f"Wrote cleaned output to {output_file}")
+    process_media(args.input, args.wakewords, args.output)
 
 
 def main():
